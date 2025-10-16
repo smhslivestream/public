@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Current Livestream Event</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f8f9fa;
+      margin: 0;
+      padding: 2rem;
+      color: #333;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: left;
+    }
+    th {
+      background: #0077cc;
+      color: white;
+    }
+    tr:nth-child(even) {
+      background: #f2f2f2;
+    }
+    a {
+      color: #0077cc;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <h1 id="eventTitle">Loading event...</h1>
+  <div id="tableContainer"></div>
+
+  <script>
+    const jsonUrl = "https://raw.githubusercontent.com/smhslivestream/event-link/main/liens.json?nocache=" + Date.now();
+
+    fetch(jsonUrl)
+      .then(response => {
+        if (!response.ok) throw new Error("Network response was not ok");
+        return response.json();
+      })
+      .then(data => {
+        const event = data.current_event;
+        const container = document.getElementById("tableContainer");
+        const titleEl = document.getElementById("eventTitle");
+
+        if (!event || !event.days || event.days.length === 0) {
+          titleEl.textContent = "No current event found";
+          return;
+        }
+
+        titleEl.textContent = event.event_title || "Current Event";
+
+        // Build table headers dynamically based on court names
+        const courtNames = Object.keys(event.days[0].links);
+        let tableHTML = "<table><thead><tr><th>Date</th>";
+        courtNames.forEach(court => tableHTML += `<th>${court}</th>`);
+        tableHTML += "</tr></thead><tbody>";
+
+        // Fill rows
+        event.days.forEach(day => {
+          tableHTML += `<tr><td>${day.label || day.date}</td>`;
+          courtNames.forEach(court => {
+            const link = day.links[court];
+            if (link && link.startsWith("http")) {
+              tableHTML += `<td><a href="${link}" target="_blank">Watch</a></td>`;
+            } else {
+              tableHTML += `<td>${link || "-"}</td>`;
+            }
+          });
+          tableHTML += "</tr>";
+        });
+
+        tableHTML += "</tbody></table>";
+        container.innerHTML = tableHTML;
+      })
+      .catch(error => {
+        console.error("Error loading JSON:", error);
+        document.getElementById("eventTitle").textContent = "⚠️ Failed to load event data.";
+      });
+  </script>
+</body>
+</html>
