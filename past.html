@@ -97,14 +97,14 @@
 
           (event.days || []).forEach(day => {
             tableHTML += `<tr><td>${day.label || day.date}</td>`;
-            courtNames.forEach(court => {
-              const link = day.links[court];
-              if (link && link.startsWith("http")) {
-                tableHTML += `<td><a href="${link}" target="_blank">Watch</a></td>`;
-              } else {
-                tableHTML += `<td>${link || "-"}</td>`;
-              }
-            });
+      courtNames.forEach(court => {
+  const link = day.links[court];
+  if (link && link.startsWith("http")) {
+    tableHTML += `<td><a href="${link}" target="_blank">${link}</a></td>`;
+  } else {
+    tableHTML += `<td>${link || "-"}</td>`;
+  }
+});
             tableHTML += "</tr>";
           });
 
