@@ -44,11 +44,12 @@
   </style>
 </head>
 <body>
+  <h1 align="center">École St. Mary High School Livestreaming Page</h1>
   <h1 id="eventTitle">Loading event...</h1>
   <div id="tableContainer"></div>
 
   <script>
-    const jsonUrl = "https://github.com/smhslivestream/event-links/blob/75ee52e5a320704f5a58e3a7a5a67ddce0e72e59/liens.json?nocache=" + Date.now();
+    const jsonUrl = "https://raw.githubusercontent.com/smhslivestream/event-links/refs/heads/main/liens.jsonnocache=" + Date.now();
 
     fetch(jsonUrl)
       .then(response => {
@@ -95,5 +96,6 @@
         document.getElementById("eventTitle").textContent = "⚠️ Failed to load event data.";
       });
   </script>
+  <h5 align="center"><b>Livestream links provided by <i>École St. Mary High School A/V & Livestreaming Crew.</i></b> </h5>
 </body>
 </html>
