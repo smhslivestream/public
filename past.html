@@ -51,78 +51,31 @@
       margin-top: -0.5rem;
       margin-bottom: 1rem;
     }
+    .controls {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    select {
+      padding: 8px;
+      margin: 0 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
   </style>
 </head>
 <body>
   <h1><a link="#top">École St. Mary High School – Past Livestream Events</a></h1>
   <h4 align="center"><a href="index.html">📺 View current event</a></h4>
-  <div id="eventsContainer" align="center">Loading past events...</div>
 
-  <script>
-    const jsonUrl = "https://raw.githubusercontent.com/smhslivestream/event-links/main/liens.json?nocache=" + Date.now();
+  <div class="controls">
+    <label for="sortSelect"><b>Sort events by:</b></label>
+    <select id="sortSelect">
+      <option value="day1">Day 1 date</option>
+      <option value="alphabetical">Alphabetical order</option>
+      <option value="archived">Archival date</option>
+    </select>
 
-    fetch(jsonUrl)
-      .then(response => {
-        if (!response.ok) throw new Error("Network response was not ok");
-        return response.json();
-      })
-      .then(data => {
-        const container = document.getElementById("eventsContainer");
-        const pastEvents = data.past_events || [];
-
-        if (pastEvents.length === 0) {
-          container.innerHTML = "<p>No past events found.</p>";
-          return;
-        }
-
-        container.innerHTML = ""; // Clear loading text
-
-        pastEvents.forEach(event => {
-          const block = document.createElement("div");
-          block.className = "event-block";
-
-          const title = document.createElement("h2");
-          title.textContent = event.event_title || "Untitled Event";
-
-          const dateInfo = document.createElement("p");
-          dateInfo.className = "archive-date";
-          const archived = event.archived_at ? new Date(event.archived_at).toLocaleString() : "Unknown";
-          dateInfo.textContent = "Archived on: " + archived;
-
-          let tableHTML = "<table><thead><tr><th>Date</th>";
-          const firstDay = event.days && event.days[0];
-          const courtNames = firstDay ? Object.keys(firstDay.links) : [];
-          courtNames.forEach(court => tableHTML += `<th>${court}</th>`);
-          tableHTML += "</tr></thead><tbody>";
-
-          (event.days || []).forEach(day => {
-            tableHTML += `<tr><td>${day.label || day.date}</td>`;
-      courtNames.forEach(court => {
-  const link = day.links[court];
-  if (link && link.startsWith("http")) {
-    tableHTML += `<td><a href="${link}" target="_blank">${link}</a></td>`;
-  } else {
-    tableHTML += `<td>${link || "-"}</td>`;
-  }
-});
-            tableHTML += "</tr>";
-          });
-
-          tableHTML += "</tbody></table>";
-
-          block.appendChild(title);
-          block.appendChild(dateInfo);
-          block.insertAdjacentHTML("beforeend", tableHTML);
-
-          container.appendChild(block);
-        });
-      })
-      .catch(error => {
-        console.error("Error loading JSON:", error);
-        document.getElementById("eventsContainer").textContent = "⚠️ Failed to load past events.";
-      });
-  </script>
-    <h4 align="center"><a href="index.html">📺 View current event</a> - <a href="#top">🔝Back to the top</a></h4>
-  <h5 align="center"><b>Livestream links provided by <i>École St. Mary High School A/V & Livestreaming Crew.</i></b> </h5>
-</body>
-</html>
+    <label for="filterSelect"><b>Refine by:</b></label>
+    <select id="filterSelect">
+      <option value="all">All</option>
+      <option value="volleyball">Volleyball</option>
