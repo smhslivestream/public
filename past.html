@@ -84,6 +84,11 @@
       <option value="wrestling">Wrestling</option>
       <option value="concert">Concert</option>
     </select>
+        <select id="filterGender">
+      <option value="all">All Genders</option>
+      <option value="boys">Boys</option>
+      <option value="girls">Girls</option>
+    </select>
   </div>
 
   <div id="eventsContainer" align="center">Loading past events...</div>
@@ -114,6 +119,8 @@
 
       const sortBy = document.getElementById("sortSelect").value;
       const filterBy = document.getElementById("filterSelect").value;
+      const filterBy = document.getElementById("filterGender").value;
+
 
       let filteredEvents = pastEvents.filter(ev => {
         if (filterBy === "all") return true;
