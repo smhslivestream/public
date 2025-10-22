@@ -46,7 +46,7 @@
 <body>
   <h1 align="center">École St. Mary High School Livestreaming Page</h1>
   
-  <h1 id="eventTitle">Loading event...</h1>
+  <h2 id="eventTitle">Loading event...</h2>
   <div id="tableContainer"></div>
 
   <script>
@@ -101,7 +101,7 @@ courtNames.forEach(court => {
 
 <script>
 document.getElementById("copyTableBtn").addEventListener("click", function() {
-  const titleElement = document.querySelector("h1"); // or change to a different selector if needed
+  const titleElement = document.querySelector("h2"); // or change to a different selector if needed
   const table = document.querySelector("table");
 
   if (!titleElement || !table) {
@@ -124,16 +124,17 @@ document.getElementById("copyTableBtn").addEventListener("click", function() {
 });
  document.getElementById("copyTableBtnF").addEventListener("click", function() {
   // Find the table (replace 'myTable' with your actual table’s ID if needed)
-  const titleElement = document.querySelector("h1");
+  const titleElement = document.querySelector("h2");
    const table = document.querySelector("table");
-  if (!table) {
+  if (!titleElement || !table) {
     alert("No event found!");
     return;
   }
 
   // Copy as formatted text
   const range = document.createRange();
-  range.selectNode(table);
+  range.selectNode(h2);
+   range.selectNode(table);
   const selection = window.getSelection();
   selection.removeAllRanges();
   selection.addRange(range);
