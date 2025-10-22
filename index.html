@@ -97,7 +97,7 @@ courtNames.forEach(court => {
         document.getElementById("eventTitle").textContent = "⚠️ Failed to load event data.";
       });
   </script>
-  <p align="center"> <button id="copyTableBtn">Copy Current Event Table</button></p>
+  <p align="center"> <button id="copyTableBtnF">Copy Current Event Table Formatted</button> <button id="copyTableBtn">Copy Current Event Table As Raw Text</button></p>
 
 <script>
 document.getElementById("copyTableBtn").addEventListener("click", function() {
@@ -105,7 +105,7 @@ document.getElementById("copyTableBtn").addEventListener("click", function() {
   const table = document.querySelector("table");
 
   if (!titleElement || !table) {
-    alert("Event title or table not found!");
+    alert("No event found!");
     return;
   }
 
@@ -121,6 +121,32 @@ document.getElementById("copyTableBtn").addEventListener("click", function() {
   navigator.clipboard.writeText(text)
     .then(() => alert("Event title and table copied! You can paste it in Edsby or your email."))
     .catch(() => alert("Failed to copy automatically."));
+});
+ document.getElementById("copyTableBtnF").addEventListener("click", function() {
+  // Find the table (replace 'myTable' with your actual table’s ID if needed)
+  const titleElement = document.querySelector("h1");
+   const table = document.querySelector("table");
+  if (!table) {
+    alert("No event found!");
+    return;
+  }
+
+  // Copy as formatted text
+  const range = document.createRange();
+  range.selectNode(table);
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
+
+  try {
+    document.execCommand("copy");
+    alert("Table copied! You can now paste it in Edsby or your email as a formatted table.");
+  } catch (err) {
+    alert("Sorry, unable to copy automatically. Try selecting and copying manually.");
+  }
+
+  // Cleanup
+  selection.removeAllRanges();
 });
 </script>
 
