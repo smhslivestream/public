@@ -97,6 +97,36 @@ courtNames.forEach(court => {
         document.getElementById("eventTitle").textContent = "⚠️ Failed to load event data.";
       });
   </script>
+  <button id="copyTableBtn">Copy Current Event Table</button>
+
+<script>
+document.getElementById("copyTableBtn").addEventListener("click", function() {
+  // Find the table (replace 'myTable' with your actual table’s ID if needed)
+  const table = document.querySelector("table");
+  if (!table) {
+    alert("No table found!");
+    return;
+  }
+
+  // Copy as formatted text
+  const range = document.createRange();
+  range.selectNode(table);
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
+
+  try {
+    document.execCommand("copy");
+    alert("Table copied! You can now paste it in Edsby or your email.");
+  } catch (err) {
+    alert("Sorry, unable to copy automatically. Try selecting and copying manually.");
+  }
+
+  // Cleanup
+  selection.removeAllRanges();
+});
+</script>
+
     <h4 align="center"><a href="past.html">🗄️View past events</a></h4>
   <h5 align="center"><b>Livestream links provided by <i>École St. Mary High School A/V & Livestreaming Crew.</i></b> </h5>
   <h6 align="center">Version 1.1</h6>
