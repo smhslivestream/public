@@ -70,7 +70,8 @@
   <div class="controls">
     <label for="sortSelect"><b>Sort events by:</b></label>
     <select id="sortSelect">
-      <option value="day1">Day 1 date</option>
+      <option value="day1">Day 1 date most recent</option>
+      <option value="day1old">Day 1 date oldest</option>
       <option value="alphabetical">Alphabetical order</option>
       <option value="archived">Archival date</option>
     </select>
@@ -101,3 +102,117 @@
   <div id="eventsContainer" align="center">Loading past events...</div>
 
   <script>
+    const jsonUrl = "https://raw.githubusercontent.com/smhslivestream/event-links/main/liens.json?nocache=" + Date.now();
+    let pastEvents = [];
+
+    // Fetch data
+    fetch(jsonUrl)
+      .then(response => {
+        if (!response.ok) throw new Error("Network response was not ok");
+        return response.json();
+      })
+      .then(data => {
+        pastEvents = data.past_events || [];
+        renderEvents();
+      })
+      .catch(error => {
+        console.error("Error loading JSON:", error);
+        document.getElementById("eventsContainer").textContent = "⚠️ Failed to load past events.";
+      });
+
+    // Render events
+    function renderEvents() {
+      const container = document.getElementById("eventsContainer");
+      container.innerHTML = "";
+
+      const sortBy = document.getElementById("sortSelect").value;
+      const sportFilter = document.getElementById("filterSelect").value;
+      const genderFilter = document.getElementById("filterGender").value;
+      const levelFilter = document.getElementById("filterLevel").value;
+
+      let filteredEvents = pastEvents.filter(ev => {
+        const title = (ev.event_title || "").toLowerCase();
+
+        // Apply multiple filters
+        if (sportFilter !== "all" && !title.includes(sportFilter)) return false;
+        if (genderFilter !== "all" && !title.includes(genderFilter)) return false;
+        if (levelFilter !== "all" && !title.includes(levelFilter)) return false;
+
+        return true;
+      });
+
+      // Sort logic
+      filteredEvents.sort((a, b) => {
+        if (sortBy === "alphabetical") {
+          return (a.event_title || "").localeCompare(b.event_title || "");
+        } else if (sortBy === "archived") {
+          return new Date(b.archived_at) - new Date(a.archived_at);
+        } else if (sortBy === "day1") {
+          const dateA = a.days && a.days[0] ? new Date(a.days[0].date) : new Date(0);
+          const dateB = b.days && b.days[0] ? new Date(b.days[0].date) : new Date(0);
+          return dateB - dateA;
+        } else if (sortBy === "day1old") {
+          const dateA = a.days && a.days[0] ? new Date(a.days[0].date) : new Date(0);
+          const dateB = b.days && b.days[0] ? new Date(b.days[0].date) : new Date(0);
+          return dateB - dateA;
+        }
+        return 0;
+      });
+
+      if (filteredEvents.length === 0) {
+        container.innerHTML = "<p>No events found for this selection.</p>";
+        return;
+      }
+
+      filteredEvents.forEach(event => {
+        const block = document.createElement("div");
+        block.className = "event-block";
+
+        const title = document.createElement("h2");
+        title.textContent = event.event_title || "Untitled Event";
+
+        const dateInfo = document.createElement("p");
+        dateInfo.className = "archive-date";
+        const archived = event.archived_at ? new Date(event.archived_at).toLocaleString() : "Unknown";
+        dateInfo.textContent = "Archived on: " + archived;
+
+        let tableHTML = "<table><thead><tr><th>Date</th>";
+        const firstDay = event.days && event.days[0];
+        const courtNames = firstDay ? Object.keys(firstDay.links || {}) : [];
+        courtNames.forEach(court => tableHTML += `<th>${court}</th>`);
+        tableHTML += "</tr></thead><tbody>";
+
+        (event.days || []).forEach(day => {
+          tableHTML += `<tr><td>${day.label || day.date || "-"}</td>`;
+          courtNames.forEach(court => {
+            const link = day.links ? day.links[court] : null;
+            if (link && link.startsWith("http")) {
+              tableHTML += `<td><a href="${link}" target="_blank">${link}</a></td>`;
+            } else {
+              tableHTML += `<td>${link || "-"}</td>`;
+            }
+          });
+          tableHTML += "</tr>";
+        });
+
+        tableHTML += "</tbody></table>";
+
+        block.appendChild(title);
+        block.appendChild(dateInfo);
+        block.insertAdjacentHTML("beforeend", tableHTML);
+
+        container.appendChild(block);
+      });
+    }
+
+    // Event listeners for sorting/filtering
+    document.getElementById("sortSelect").addEventListener("change", renderEvents);
+    document.getElementById("filterSelect").addEventListener("change", renderEvents);
+    document.getElementById("filterGender").addEventListener("change", renderEvents);
+    document.getElementById("filterLevel").addEventListener("change", renderEvents);
+  </script>
+
+  <h4 align="center"><a href="index.html">📺 View current event</a> - <a href="#top">🔝 Back to top</a></h4>
+  <h5 align="center"><b>Livestream links provided by <i>École St. Mary High School A/V & Livestreaming Crew.</i></b></h5>
+</body>
+</html>
