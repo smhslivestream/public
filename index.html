@@ -16,11 +16,15 @@
       text-align: center;
       margin-bottom: 1.5rem;
     }
+    h2 {
+      text-align: center;
+    }
     table {
       width: 100%;
       border-collapse: collapse;
       background: white;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      margin-top: 1rem;
     }
     th, td {
       border: 1px solid #ddd;
@@ -41,16 +45,34 @@
     a:hover {
       text-decoration: underline;
     }
+    button {
+      padding: 10px 15px;
+      margin: 5px;
+      border: none;
+      border-radius: 6px;
+      background: #0077cc;
+      color: white;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button:hover {
+      background: #005fa3;
+    }
   </style>
 </head>
 <body>
-  <h1 align="center">École St. Mary High School Livestreaming Page</h1>
+  <h1>École St. Mary High School Livestreaming Page</h1>
   
   <h2 id="eventTitle">Loading event...</h2>
   <div id="tableContainer"></div>
 
+  <p align="center">
+    <button id="copyTableBtnF">📋 Copy Current Event (Formatted)</button>
+    <button id="copyTableBtn">📄 Copy Current Event (Plain Text)</button>
+  </p>
+
   <script>
-const jsonUrl = "https://raw.githubusercontent.com/smhslivestream/event-links/main/liens.json?nocache=" + Date.now();
+    const jsonUrl = "https://raw.githubusercontent.com/smhslivestream/event-links/main/liens.json?nocache=" + Date.now();
 
     fetch(jsonUrl)
       .then(response => {
@@ -63,96 +85,23 @@ const jsonUrl = "https://raw.githubusercontent.com/smhslivestream/event-links/ma
         const titleEl = document.getElementById("eventTitle");
 
         if (!event || !event.days || event.days.length === 0) {
-          titleEl.textContent = "No current event found";
+          titleEl.textContent = "No current event found.";
           return;
         }
 
         titleEl.textContent = event.event_title || "Current Event";
 
-        // Build table headers dynamically based on court names
-        const courtNames = [...new Set(event.days.flatMap(day => Object.keys(day.links)))];
+        // Build table headers dynamically
+        const courtNames = [...new Set(event.days.flatMap(day => Object.keys(day.links || {})))];
         let tableHTML = "<table><thead><tr><th>Date</th>";
         courtNames.forEach(court => tableHTML += `<th>${court}</th>`);
         tableHTML += "</tr></thead><tbody>";
 
         // Fill rows
         event.days.forEach(day => {
-          tableHTML += `<tr><td>${day.label || day.date}</td>`;
-courtNames.forEach(court => {
-  const link = day.links[court];
-  if (link && link.startsWith("http")) {
-    tableHTML += `<td><a href="${link}" target="_blank">${link}</a></td>`;
-  } else {
-    tableHTML += `<td>${link || "-"}</td>`;
-  }
-});
-          tableHTML += "</tr>";
-        });
-
-        tableHTML += "</tbody></table>";
-        container.innerHTML = tableHTML;
-      })
-      .catch(error => {
-        console.error("Error loading JSON:", error);
-        document.getElementById("eventTitle").textContent = "⚠️ Failed to load event data.";
-      });
-  </script>
-  <p align="center"> <button id="copyTableBtnF">Copy Current Event Table Formatted</button> <button id="copyTableBtn">Copy Current Event Table As Raw Text</button></p>
-
-<script>
-document.getElementById("copyTableBtn").addEventListener("click", function() {
-  const titleElement = document.querySelector("h2"); // or change to a different selector if needed
-  const table = document.querySelector("table");
-
-  if (!titleElement || !table) {
-    alert("No event found!");
-    return;
-  }
-
-  // Combine event title + table text
-  let text = titleElement.innerText + "\n\n";
-
-  for (let row of table.rows) {
-    const cells = Array.from(row.cells).map(cell => cell.innerText.trim());
-    text += cells.join("\t") + "\n";
-  }
-
-  // Copy to clipboard
-  navigator.clipboard.writeText(text)
-    .then(() => alert("Event title and table copied! You can paste it in Edsby or your email."))
-    .catch(() => alert("Failed to copy automatically."));
-});
- document.getElementById("copyTableBtnF").addEventListener("click", function() {
-  // Find the table (replace 'myTable' with your actual table’s ID if needed)
-  const titleElement = document.querySelector("h2");
-   const table = document.querySelector("table");
-  if (!titleElement || !table) {
-    alert("No event found!");
-    return;
-  }
-
-  // Copy as formatted text
-  const range = document.createRange();
-  range.selectNode(h2);
-   range.selectNode(table);
-  const selection = window.getSelection();
-  selection.removeAllRanges();
-  selection.addRange(range);
-
-  try {
-    document.execCommand("copy");
-    alert("Table copied! You can now paste it in Edsby or your email as a formatted table.");
-  } catch (err) {
-    alert("Sorry, unable to copy automatically. Try selecting and copying manually.");
-  }
-
-  // Cleanup
-  selection.removeAllRanges();
-});
-</script>
-
-    <h4 align="center"><a href="past.html">🗄️View past events</a></h4>
-  <h5 align="center"><b>Livestream links provided by <i>École St. Mary High School A/V & Livestreaming Crew.</i></b> </h5>
-  <h6 align="center">Version 1.2</h6>
-</body>
-</html>
+          tableHTML += `<tr><td>${day.label || day.date || "-"}</td>`;
+          courtNames.forEach(court => {
+            const link = day.links ? day.links[court] : null;
+            if (link && link.startsWith("http")) {
+              tableHTML += `<td><a href="${link}" target="_blank">${link}</a></td>`;
+            } else {
