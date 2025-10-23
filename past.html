@@ -12,9 +12,7 @@
       padding: 2rem;
       color: #333;
     }
-    h1, h2 {
-      text-align: center;
-    }
+    h1, h2 { text-align: center; }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -27,23 +25,11 @@
       padding: 10px;
       text-align: left;
     }
-    th {
-      background: #0077cc;
-      color: white;
-    }
-    tr:nth-child(even) {
-      background: #f2f2f2;
-    }
-    a {
-      color: #0077cc;
-      text-decoration: none;
-    }
-    a:hover {
-      text-decoration: underline;
-    }
-    .event-block {
-      margin-bottom: 3rem;
-    }
+    th { background: #0077cc; color: white; }
+    tr:nth-child(even) { background: #f2f2f2; }
+    a { color: #0077cc; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .event-block { margin-bottom: 3rem; }
     .archive-date {
       text-align: center;
       color: #666;
@@ -57,7 +43,7 @@
     }
     select {
       padding: 8px;
-      margin: 0 10px;
+      margin: 0 8px;
       border: 1px solid #ccc;
       border-radius: 5px;
     }
@@ -67,16 +53,17 @@
   <h1><a href="#top">École St. Mary High School – Past Livestream Events</a></h1>
   <h4 align="center"><a href="index.html">📺 View current event</a></h4>
 
+  <!-- FILTERS + SORTING -->
   <div class="controls">
     <label for="sortSelect"><b>Sort events by:</b></label>
     <select id="sortSelect">
-      <option value="day1">Day 1 date most recent</option>
-      <option value="day1old">Day 1 date oldest</option>
+      <option value="day1newest">Day 1 – Newest first</option>
+      <option value="day1oldest">Day 1 – Oldest first</option>
       <option value="alphabetical">Alphabetical order</option>
-      <option value="archived">Archival date</option>
+      <option value="archived">Archival date (newest first)</option>
     </select>
 
-    <label for="filterSelect"><b>Refine by:</b></label>
+    <label for="filterSelect"><b>Refine by sport:</b></label>
     <select id="filterSelect">
       <option value="all">All</option>
       <option value="volleyball">Volleyball</option>
@@ -86,41 +73,54 @@
       <option value="concert">Concert</option>
     </select>
 
+    <label for="filterGender"><b>Gender:</b></label>
     <select id="filterGender">
-      <option value="all">All Genders</option>
+      <option value="all">All</option>
       <option value="boys">Boys</option>
       <option value="girls">Girls</option>
     </select>
 
+    <label for="filterLevel"><b>Level:</b></label>
     <select id="filterLevel">
-      <option value="all">Any Level</option>
+      <option value="all">All</option>
       <option value="junior">Junior</option>
       <option value="senior">Senior</option>
+    </select>
+
+    <label for="filterYear"><b>Year:</b></label>
+    <select id="filterYear">
+      <option value="all">All</option>
+      <option value="2026">2026</option>
+      <option value="2025">2025</option>
+      <option value="2024">2024</option>
+      <option value="2023">2023</option>
     </select>
   </div>
 
   <div id="eventsContainer" align="center">Loading past events...</div>
 
   <script>
-    const jsonUrl = "https://raw.githubusercontent.com/smhslivestream/event-links/main/liens.json?nocache=" + Date.now();
+    const jsonUrl =
+      "https://raw.githubusercontent.com/smhslivestream/event-links/main/liens.json?nocache=" +
+      Date.now();
     let pastEvents = [];
 
     // Fetch data
     fetch(jsonUrl)
-      .then(response => {
+      .then((response) => {
         if (!response.ok) throw new Error("Network response was not ok");
         return response.json();
       })
-      .then(data => {
+      .then((data) => {
         pastEvents = data.past_events || [];
         renderEvents();
       })
-      .catch(error => {
+      .catch((error) => {
         console.error("Error loading JSON:", error);
-        document.getElementById("eventsContainer").textContent = "⚠️ Failed to load past events.";
+        document.getElementById("eventsContainer").textContent =
+          "⚠️ Failed to load past events.";
       });
 
-    // Render events
     function renderEvents() {
       const container = document.getElementById("eventsContainer");
       container.innerHTML = "";
@@ -129,42 +129,52 @@
       const sportFilter = document.getElementById("filterSelect").value;
       const genderFilter = document.getElementById("filterGender").value;
       const levelFilter = document.getElementById("filterLevel").value;
+      const yearFilter = document.getElementById("filterYear").value;
 
-      let filteredEvents = pastEvents.filter(ev => {
+      // FILTERS
+      let filteredEvents = pastEvents.filter((ev) => {
         const title = (ev.event_title || "").toLowerCase();
 
-        // Apply multiple filters
         if (sportFilter !== "all" && !title.includes(sportFilter)) return false;
         if (genderFilter !== "all" && !title.includes(genderFilter)) return false;
         if (levelFilter !== "all" && !title.includes(levelFilter)) return false;
 
+        if (yearFilter !== "all") {
+          const yearInTitle = title.includes(yearFilter);
+          const day1 =
+            ev.days && ev.days[0] ? new Date(ev.days[0].date) : null;
+          const eventYear = day1 ? day1.getFullYear().toString() : "";
+          if (!yearInTitle && eventYear !== yearFilter) return false;
+        }
+
         return true;
       });
 
-      // Sort logic
+      // SORTING
       filteredEvents.sort((a, b) => {
+        const getDate = (ev) =>
+          ev.days && ev.days[0] ? new Date(ev.days[0].date) : new Date(0);
+
         if (sortBy === "alphabetical") {
           return (a.event_title || "").localeCompare(b.event_title || "");
         } else if (sortBy === "archived") {
           return new Date(b.archived_at) - new Date(a.archived_at);
-        } else if (sortBy === "day1") {
-          const dateA = a.days && a.days[0] ? new Date(a.days[0].date) : new Date(0);
-          const dateB = b.days && b.days[0] ? new Date(b.days[0].date) : new Date(0);
-          return dateB - dateA;
-        } else if (sortBy === "day1old") {
-          const dateA = a.days && a.days[0] ? new Date(a.days[0].date) : new Date(0);
-          const dateB = b.days && b.days[0] ? new Date(b.days[0].date) : new Date(0);
-          return dateB - dateA;
+        } else if (sortBy === "day1newest") {
+          return getDate(b) - getDate(a);
+        } else if (sortBy === "day1oldest") {
+          return getDate(a) - getDate(b);
         }
         return 0;
       });
 
+      // NO RESULTS
       if (filteredEvents.length === 0) {
         container.innerHTML = "<p>No events found for this selection.</p>";
         return;
       }
 
-      filteredEvents.forEach(event => {
+      // RENDER EVENTS
+      filteredEvents.forEach((event) => {
         const block = document.createElement("div");
         block.className = "event-block";
 
@@ -173,18 +183,22 @@
 
         const dateInfo = document.createElement("p");
         dateInfo.className = "archive-date";
-        const archived = event.archived_at ? new Date(event.archived_at).toLocaleString() : "Unknown";
+        const archived = event.archived_at
+          ? new Date(event.archived_at).toLocaleString()
+          : "Unknown";
         dateInfo.textContent = "Archived on: " + archived;
 
         let tableHTML = "<table><thead><tr><th>Date</th>";
         const firstDay = event.days && event.days[0];
         const courtNames = firstDay ? Object.keys(firstDay.links || {}) : [];
-        courtNames.forEach(court => tableHTML += `<th>${court}</th>`);
+        courtNames.forEach(
+          (court) => (tableHTML += `<th>${court}</th>`)
+        );
         tableHTML += "</tr></thead><tbody>";
 
-        (event.days || []).forEach(day => {
+        (event.days || []).forEach((day) => {
           tableHTML += `<tr><td>${day.label || day.date || "-"}</td>`;
-          courtNames.forEach(court => {
+          courtNames.forEach((court) => {
             const link = day.links ? day.links[court] : null;
             if (link && link.startsWith("http")) {
               tableHTML += `<td><a href="${link}" target="_blank">${link}</a></td>`;
@@ -200,19 +214,22 @@
         block.appendChild(title);
         block.appendChild(dateInfo);
         block.insertAdjacentHTML("beforeend", tableHTML);
-
         container.appendChild(block);
       });
     }
 
-    // Event listeners for sorting/filtering
-    document.getElementById("sortSelect").addEventListener("change", renderEvents);
-    document.getElementById("filterSelect").addEventListener("change", renderEvents);
-    document.getElementById("filterGender").addEventListener("change", renderEvents);
-    document.getElementById("filterLevel").addEventListener("change", renderEvents);
+    // EVENT LISTENERS
+    ["sortSelect", "filterSelect", "filterGender", "filterLevel", "filterYear"].forEach(
+      (id) => document.getElementById(id).addEventListener("change", renderEvents)
+    );
   </script>
 
-  <h4 align="center"><a href="index.html">📺 View current event</a> - <a href="#top">🔝 Back to top</a></h4>
-  <h5 align="center"><b>Livestream links provided by <i>École St. Mary High School A/V & Livestreaming Crew.</i></b></h5>
+  <h4 align="center">
+    <a href="index.html">📺 View current event</a> - 
+    <a href="#top">🔝 Back to top</a>
+  </h4>
+  <h5 align="center">
+    <b>Livestream links provided by <i>École St. Mary High School A/V & Livestreaming Crew.</i></b>
+  </h5>
 </body>
 </html>
