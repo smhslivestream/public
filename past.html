@@ -100,129 +100,149 @@
   <div id="eventsContainer" align="center">Loading past events...</div>
 
   <script>
-    const jsonUrl =
-      "https://raw.githubusercontent.com/smhslivestream/event-links/main/liens.json?nocache=" +
-      Date.now();
-    let pastEvents = [];
+  const jsonUrl =
+    "https://raw.githubusercontent.com/smhslivestream/event-links/main/liens.json?nocache=" +
+    Date.now();
 
-    // Fetch data
-    fetch(jsonUrl)
-      .then((response) => {
-        if (!response.ok) throw new Error("Network response was not ok");
-        return response.json();
-      })
-      .then((data) => {
-        pastEvents = data.past_events || [];
-        renderEvents();
-      })
-      .catch((error) => {
-        console.error("Error loading JSON:", error);
+  let pastEvents = [];
+
+  // Fetch JSON
+  fetch(jsonUrl)
+    .then((response) => {
+      if (!response.ok) throw new Error("Network response was not ok");
+      return response.json();
+    })
+    .then((data) => {
+      if (!data || !Array.isArray(data.events)) {
         document.getElementById("eventsContainer").textContent =
-          "⚠️ Failed to load past events.";
-      });
-
-    function renderEvents() {
-      const container = document.getElementById("eventsContainer");
-      container.innerHTML = "";
-
-      const sortBy = document.getElementById("sortSelect").value;
-      const sportFilter = document.getElementById("filterSelect").value;
-      const genderFilter = document.getElementById("filterGender").value;
-      const levelFilter = document.getElementById("filterLevel").value;
-      const yearFilter = document.getElementById("filterYear").value;
-
-      // FILTERS
-      let filteredEvents = pastEvents.filter((ev) => {
-        const title = (ev.event_title || "").toLowerCase();
-
-        if (sportFilter !== "all" && !title.includes(sportFilter)) return false;
-        if (genderFilter !== "all" && !title.includes(genderFilter)) return false;
-        if (levelFilter !== "all" && !title.includes(levelFilter)) return false;
-
-        if (yearFilter !== "all") {
-          const yearInTitle = title.includes(yearFilter);
-          const day1 =
-            ev.days && ev.days[0] ? new Date(ev.days[0].date) : null;
-          const eventYear = day1 ? day1.getFullYear().toString() : "";
-          if (!yearInTitle && eventYear !== yearFilter) return false;
-        }
-
-        return true;
-      });
-
-      // SORTING
-      filteredEvents.sort((a, b) => {
-        const getDate = (ev) =>
-          ev.days && ev.days[0] ? new Date(ev.days[0].date) : new Date(0);
-
-        if (sortBy === "alphabetical") {
-          return (a.event_title || "").localeCompare(b.event_title || "");
-        } else if (sortBy === "archived") {
-          return new Date(b.archived_at) - new Date(a.archived_at);
-        } else if (sortBy === "day1newest") {
-          return getDate(b) - getDate(a);
-        } else if (sortBy === "day1oldest") {
-          return getDate(a) - getDate(b);
-        }
-        return 0;
-      });
-
-      // NO RESULTS
-      if (filteredEvents.length === 0) {
-        container.innerHTML = "<p>No events found for this selection.</p>";
+          "⚠️ Invalid JSON structure.";
         return;
       }
 
-      // RENDER EVENTS
-      filteredEvents.forEach((event) => {
-        const block = document.createElement("div");
-        block.className = "event-block";
+      // NEW: Only events where current === false
+      pastEvents = data.events.filter((ev) => ev.current === false);
 
-        const title = document.createElement("h2");
-        title.textContent = event.event_title || "Untitled Event";
+      renderEvents();
+    })
+    .catch((error) => {
+      console.error("Error loading JSON:", error);
+      document.getElementById("eventsContainer").textContent =
+        "⚠️ Failed to load past events.";
+    });
 
-        const dateInfo = document.createElement("p");
-        dateInfo.className = "archive-date";
-        const archived = event.archived_at
-          ? new Date(event.archived_at).toLocaleString()
-          : "Unknown";
-        dateInfo.textContent = "Archived on: " + archived;
+  function renderEvents() {
+    const container = document.getElementById("eventsContainer");
+    container.innerHTML = "";
 
-        let tableHTML = "<table><thead><tr><th>Date</th>";
-        const firstDay = event.days && event.days[0];
-        const courtNames = firstDay ? Object.keys(firstDay.links || {}) : [];
-        courtNames.forEach(
-          (court) => (tableHTML += `<th>${court}</th>`)
-        );
-        tableHTML += "</tr></thead><tbody>";
+    const sortBy = document.getElementById("sortSelect").value;
+    const sportFilter = document.getElementById("filterSelect").value;
+    const genderFilter = document.getElementById("filterGender").value;
+    const levelFilter = document.getElementById("filterLevel").value;
+    const yearFilter = document.getElementById("filterYear").value;
 
-        (event.days || []).forEach((day) => {
-          tableHTML += `<tr><td>${day.label || day.date || "-"}</td>`;
-          courtNames.forEach((court) => {
-            const link = day.links ? day.links[court] : null;
-            if (link && link.startsWith("http")) {
-              tableHTML += `<td><a href="${link}" target="_blank">${link}</a></td>`;
-            } else {
-              tableHTML += `<td>${link || "-"}</td>`;
-            }
-          });
-          tableHTML += "</tr>";
-        });
+    // FILTERS
+    let filteredEvents = pastEvents.filter((ev) => {
+      const title = (ev.event_title || "").toLowerCase();
 
-        tableHTML += "</tbody></table>";
+      if (sportFilter !== "all" && !title.includes(sportFilter)) return false;
+      if (genderFilter !== "all" && !title.includes(genderFilter)) return false;
+      if (levelFilter !== "all" && !title.includes(levelFilter)) return false;
 
-        block.appendChild(title);
-        block.appendChild(dateInfo);
-        block.insertAdjacentHTML("beforeend", tableHTML);
-        container.appendChild(block);
-      });
+      if (yearFilter !== "all") {
+        const firstDay = ev.days?.[0];
+        const eventYear = firstDay ? new Date(firstDay.date).getFullYear() : null;
+        if (eventYear && eventYear.toString() !== yearFilter) return false;
+      }
+
+      return true;
+    });
+
+    // SORTING
+    const getDay1Date = (ev) =>
+      ev.days?.[0] ? new Date(ev.days[0].date) : new Date(0);
+
+    filteredEvents.sort((a, b) => {
+      if (sortBy === "alphabetical") {
+        return (a.event_title || "").localeCompare(b.event_title || "");
+      }
+      if (sortBy === "archived") {
+        return new Date(b.archived_at || 0) - new Date(a.archived_at || 0);
+      }
+      if (sortBy === "day1newest") {
+        return getDay1Date(b) - getDay1Date(a);
+      }
+      if (sortBy === "day1oldest") {
+        return getDay1Date(a) - getDay1Date(b);
+      }
+      return 0;
+    });
+
+    // NO RESULTS
+    if (filteredEvents.length === 0) {
+      container.innerHTML = "<p>No events found for this selection.</p>";
+      return;
     }
 
-    // EVENT LISTENERS
-    ["sortSelect", "filterSelect", "filterGender", "filterLevel", "filterYear"].forEach(
-      (id) => document.getElementById(id).addEventListener("change", renderEvents)
-    );
-  </script>
+    // RENDER EACH EVENT
+    filteredEvents.forEach((event) => {
+      const block = document.createElement("div");
+      block.className = "event-block";
+
+      // TITLE
+      const title = document.createElement("h2");
+      title.textContent = event.event_title || "Untitled Event";
+
+      // ARCHIVE DATE (fallback if missing)
+      const archived = event.archived_at
+        ? new Date(event.archived_at).toLocaleString()
+        : "Unknown archival time";
+
+      const dateInfo = document.createElement("p");
+      dateInfo.className = "archive-date";
+      dateInfo.textContent = "Archived on: " + archived;
+
+      // TABLE GENERATION
+      let tableHTML = "<table><thead><tr><th>Date</th>";
+
+      // Build dynamic court list across ALL days
+      const courtNames = [
+        ...new Set((event.days || []).flatMap((day) => Object.keys(day.links || {}))),
+      ];
+
+      courtNames.forEach((court) => (tableHTML += `<th>${court}</th>`));
+      tableHTML += "</tr></thead><tbody>";
+
+      (event.days || []).forEach((day) => {
+        tableHTML += `<tr><td>${day.label || day.date || "-"}</td>`;
+
+        courtNames.forEach((court) => {
+          const link = day.links?.[court] || null;
+          if (link && link.startsWith("http")) {
+            tableHTML += `<td><a href="${link}" target="_blank">${link}</a></td>`;
+          } else {
+            tableHTML += `<td>${link || "-"}</td>`;
+          }
+        });
+
+        tableHTML += "</tr>";
+      });
+
+      tableHTML += "</tbody></table>";
+
+      block.appendChild(title);
+      block.appendChild(dateInfo);
+      block.insertAdjacentHTML("beforeend", tableHTML);
+
+      container.appendChild(block);
+    });
+  }
+
+  // All filters re-render the list
+  ["sortSelect", "filterSelect", "filterGender", "filterLevel", "filterYear"].forEach((id) =>
+    document.getElementById(id).addEventListener("change", renderEvents)
+  );
+</script>
+
 
   <h4 align="center">
     <a href="index.html">📺 View current event</a> - 
