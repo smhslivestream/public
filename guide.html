@@ -86,9 +86,8 @@
 <script>
 // 🔗 IMPORTANT: Replace this with your RAW GitHub link
 // Example:
-// const GUIDE_JSON_URL = "https://raw.githubusercontent.com/smhslivestream/event-links/main/guide.json";
 
-const GUIDE_JSON_URL = "REPLACE_WITH_RAW_GITHUB_URL";
+const GUIDE_JSON_URL = "https://raw.githubusercontent.com/smhslivestream/event-links/main/guide.json";
 
 async function loadGuide() {
     const loading = document.getElementById("loading");
@@ -109,15 +108,71 @@ async function loadGuide() {
             return;
         }
 
-        container.innerHTML = items.map(item => `
-            <div class="guideItem">
-                <div class="guideTitle">${item.title}</div>
-                <div class="guideDesc">${item.description}</div>
-                <div class="guideLink">
-                    <a href="${item.link}" target="_blank">📺 Watch Video</a>
-                </div>
+        container.innerHTML = items.map(item => {
+    const link = item.link || "";
+
+    let preview = `<div style="color:#6b7280;">(Preview not available)</div>`;
+
+    // YouTube detection
+    const yt = link.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_-]+)/);
+    if (yt) {
+        preview = `
+        <iframe
+            width="100%"
+            height="315"
+            src="https://www.youtube.com/embed/${yt[1]}"
+            frameborder="0"
+            allowfullscreen
+            style="border-radius:8px;">
+        </iframe>
+        `;
+    }
+
+    // Vimeo detection
+    const vimeo = link.match(/vimeo\.com\/(\d+)/);
+    if (vimeo) {
+        preview = `
+        <iframe
+            src="https://player.vimeo.com/video/${vimeo[1]}"
+            width="100%"
+            height="315"
+            frameborder="0"
+            allow="fullscreen"
+            style="border-radius:8px;">
+        </iframe>
+        `;
+    }
+
+    // Streamable
+    const streamable = link.match(/streamable\.com\/(\w+)/);
+    if (streamable) {
+        preview = `
+        <iframe 
+            src="https://streamable.com/e/${streamable[1]}"
+            width="100%" 
+            height="315" 
+            frameborder="0"
+            style="border-radius:8px;">
+        </iframe>
+        `;
+    }
+
+    return `
+        <div class="guideItem">
+            <div class="guideTitle">${item.title}</div>
+            <div class="guideDesc">${item.description}</div>
+
+            <div class="guideLink">
+                <a href="${link}" target="_blank">🔗 Open Video</a>
             </div>
-        `).join("");
+
+            <div class="guidePreview" style="margin-top:12px;">
+                ${preview}
+            </div>
+        </div>
+    `;
+}).join("");
+
     }
     catch (err) {
         console.error("Guide load failed:", err);
