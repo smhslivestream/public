@@ -134,7 +134,7 @@ function formatDateLabel(dateStr) {
 
       // ---- TABLE ROWS PER DAY ----
       event.days.forEach(day => {
-        let displayDate = day.label || day.date || "-";
+        let displayDate = day.date || day.label || "-";
 
 // If using "MM/DD/YYYY", convert it
 if (day.date && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(day.date)) {
