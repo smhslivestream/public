@@ -137,15 +137,21 @@ function formatDateLabel(dateStr) {
         let displayDate = day.date || day.label || "-";
 
 // If using "MM/DD/YYYY", convert it
-if (day.date) {
-  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(day.date)) {
-    displayDate = formatDateLabel(day.date);
-  } else {
-    displayDate = day.date; // If it's already a label
-  }
-} else if (day.label) {
+let displayDate = "-";
+
+if (day.date && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(day.date)) {
+  displayDate = formatDateLabel(day.date);
+}
+else if (day.label && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(day.label)) {
+  displayDate = formatDateLabel(day.label);   // <-- This is the fix
+}
+else if (day.date) {
+  displayDate = day.date;
+}
+else if (day.label) {
   displayDate = day.label;
 }
+
 
 tableHTML += `<tr><td>${displayDate}</td>`;
 
