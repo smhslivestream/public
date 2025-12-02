@@ -137,8 +137,6 @@ function formatDateLabel(dateStr) {
         let displayDate = day.date || day.label || "-";
 
 // If using "MM/DD/YYYY", convert it
-let displayDate = "-";
-
 if (day.date && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(day.date)) {
   displayDate = formatDateLabel(day.date);
 }
