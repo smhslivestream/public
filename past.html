@@ -47,6 +47,13 @@
       border: 1px solid #ccc;
       border-radius: 5px;
     }
+    #searchInput {
+  padding: 8px;
+  width: 220px;
+  border: 1px solid #aaa;
+  border-radius: 5px;
+}
+
   </style>
 </head>
 <body>
@@ -55,6 +62,9 @@
 <p align="center"><b>ℹ️ Tip:</b> If you are using on a mobile device📱, zoom out 🔍 to see the entire tables.</p>
   <!-- FILTERS + SORTING -->
   <div class="controls">
+    <br>
+<label for="searchInput"><b>Search:</b></label>
+<input type="text" id="searchInput" placeholder="Type to search…">
     <label for="sortSelect"><b>Sort events by:</b></label>
     <select id="sortSelect">
       <option value="day1newest">Day 1 – Newest first</option>
@@ -161,6 +171,33 @@ function detectEventType(title) {
 
   return "Other";
 }
+
+function getEventCategory(title) {
+  if (!title) return { name: "Other", color: "#888", textColor: "white" };
+  const t = title.toLowerCase();
+
+  // SPORTS (Blue)
+  if (t.includes("volleyball") || t.includes("basketball") || t.includes("soccer") || t.includes("wrestling")) {
+    return { name: "Sports", color: "#0077cc", textColor: "white" };
+  }
+
+  // ARTS (Red)
+  if (t.includes("concert") || t.includes("music") || t.includes("choir") || t.includes("band")) {
+    return { name: "Arts", color: "#cc0000", textColor: "white" };
+  }
+
+  // ACADEMIC (Green)
+  if (t.includes("award") || t.includes("grad") || t.includes("graduation") || t.includes("ceremony")) {
+    return { name: "Academic", color: "#22aa22", textColor: "white" };
+  }
+
+  // MODEL UN (White)
+  if (t.includes("model un") || t.includes("mun") || t.includes("debate")) {
+    return { name: "Model UN", color: "white", textColor: "black", border: "2px solid #000" };
+  }
+
+  return { name: "Other", color: "#777", textColor: "white" };
+}
     
   function renderEvents() {
     const container = document.getElementById("eventsContainer");
@@ -171,6 +208,7 @@ function detectEventType(title) {
     const genderFilter = document.getElementById("filterGender").value;
     const levelFilter = document.getElementById("filterLevel").value;
     const yearFilter = document.getElementById("filterYear").value;
+    const searchTerm = document.getElementById("searchInput").value.toLowerCase();
 
     // FILTERS
     let filteredEvents = pastEvents.filter((ev) => {
@@ -185,7 +223,7 @@ function detectEventType(title) {
         const eventYear = firstDay ? new Date(firstDay.date).getFullYear() : null;
         if (eventYear && eventYear.toString() !== yearFilter) return false;
       }
-
+      if (searchTerm !== "" && !title.includes(searchTerm)) return false;
       return true;
     });
 
@@ -218,17 +256,27 @@ function detectEventType(title) {
       block.className = "event-block";
 
       // TITLE
-      const title = document.createElement("h2");
+const title = document.createElement("h2");
 title.textContent = event.event_title || "Untitled Event";
 
-const type = document.createElement("p");
-type.style.marginTop = "-0.7rem";
-type.style.fontSize = "1rem";
-type.style.color = "#444";
-type.innerHTML = `<i>${detectEventType(event.event_title)}</i>`;
+// Category badge
+const category = getEventCategory(event.event_title);
+
+const badge = document.createElement("span");
+badge.textContent = category.name;
+badge.style.background = category.color;
+badge.style.color = category.textColor;
+badge.style.padding = "4px 10px";
+badge.style.borderRadius = "12px";
+badge.style.fontSize = "0.85rem";
+badge.style.marginLeft = "10px";
+badge.style.display = "inline-block";
+badge.style.verticalAlign = "middle";
+if (category.border) badge.style.border = category.border;
+
+title.appendChild(badge);
 
 block.appendChild(title);
-block.appendChild(type);
 
       // TABLE GENERATION
       let tableHTML = "<table><thead><tr><th>Date</th>";
@@ -275,7 +323,9 @@ block.appendChild(type);
 
   // All filters re-render the list
   ["sortSelect", "filterSelect", "filterGender", "filterLevel", "filterYear"].forEach((id) =>
-    document.getElementById(id).addEventListener("change", renderEvents)
+    document.getElementById(id).addEventListener("change", renderEvents);
+    document.getElementById("searchInput").addEventListener("input", renderEvents);
+
   );
 </script>
 
