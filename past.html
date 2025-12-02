@@ -145,6 +145,22 @@ function formatISODate(dateStr) {
 
   return `${weekday}, ${monthAbr}. ${day}, ${year}`;
 }
+
+function detectEventType(title) {
+  if (!title) return "Other";
+  const t = title.toLowerCase();
+
+  if (t.includes("grad")) return "Grad";
+  if (t.includes("award")) return "Awards";
+  if (t.includes("concert")) return "Concert";
+  if (t.includes("basketball")) return "Basketball";
+  if (t.includes("volleyball")) return "Volleyball";
+  if (t.includes("soccer")) return "Soccer";
+  if (t.includes("wrestling")) return "Wrestling";
+  if (t.includes("model un") || t.includes("mun")) return "Model UN";
+
+  return "Other";
+}
     
   function renderEvents() {
     const container = document.getElementById("eventsContainer");
