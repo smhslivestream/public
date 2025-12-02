@@ -133,25 +133,24 @@ function formatDateLabel(dateStr) {
       tableHTML += "</tr></thead><tbody>";
 
       // ---- TABLE ROWS PER DAY ----
-      event.days.forEach(day => {
-        let displayDate = day.date || day.label || "-";
+     event.days.forEach(day => {
+  let displayDate = "-";
 
-// If using "MM/DD/YYYY", convert it
-if (day.date && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(day.date)) {
-  displayDate = formatDateLabel(day.date);
-}
-else if (day.label && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(day.label)) {
-  displayDate = formatDateLabel(day.label);   // <-- This is the fix
-}
-else if (day.date) {
-  displayDate = day.date;
-}
-else if (day.label) {
-  displayDate = day.label;
-}
+  // Format ISO date: YYYY-MM-DD
+  if (day.date && /^\d{4}-\d{2}-\d{2}$/.test(day.date)) {
+    const [year, month, dayNum] = day.date.split("-");
+    const d = new Date(year, month - 1, dayNum);
+    const weekday = d.toLocaleDateString("en-US", { weekday: "long" });
+    const monthAbr = d.toLocaleDateString("en-US", { month: "short" });
+    displayDate = `${weekday}, ${monthAbr}. ${dayNum}, ${year}`;
+  }
 
+  // If label contains a human readable date → use label instead
+  else if (day.label) {
+    displayDate = day.label;
+  }
 
-tableHTML += `<tr><td>${displayDate}</td>`;
+  tableHTML += `<tr><td>${displayDate}</td>`;
 
         courtNames.forEach(court => {
           const link = day.links ? day.links[court] : null;
