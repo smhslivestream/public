@@ -60,7 +60,6 @@
       <option value="day1newest">Day 1 – Newest first</option>
       <option value="day1oldest">Day 1 – Oldest first</option>
       <option value="alphabetical">Alphabetical order</option>
-      <option value="archived">Archival date (newest first)</option>
     </select>
 
     <label for="filterSelect"><b>Refine by sport/event type:</b></label>
@@ -71,6 +70,10 @@
       <option value="soccer">Soccer</option>
       <option value="wrestling">Wrestling</option>
       <option value="concert">Concert</option>
+      <option value="model un">Model UN</option>
+      <option value="award">Award Ceremony</option>
+      <option value="grad">Graduation Ceremonies</option>
+
     </select>
 
     <label for="filterGender"><b>Gender:</b></label>
@@ -130,6 +133,19 @@
         "⚠️ Failed to load past events.";
     });
 
+function formatISODate(dateStr) {
+  // Expected: YYYY-MM-DD
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+
+  const [year, month, day] = dateStr.split("-");
+  const date = new Date(year, month - 1, day);
+
+  const weekday = date.toLocaleDateString("en-US", { weekday: "long" });
+  const monthAbr = date.toLocaleDateString("en-US", { month: "short" });
+
+  return `${weekday}, ${monthAbr}. ${day}, ${year}`;
+}
+    
   function renderEvents() {
     const container = document.getElementById("eventsContainer");
     container.innerHTML = "";
@@ -165,9 +181,6 @@
       if (sortBy === "alphabetical") {
         return (a.event_title || "").localeCompare(b.event_title || "");
       }
-      if (sortBy === "archived") {
-        return new Date(b.archived_at || 0) - new Date(a.archived_at || 0);
-      }
       if (sortBy === "day1newest") {
         return getDay1Date(b) - getDay1Date(a);
       }
@@ -190,16 +203,16 @@
 
       // TITLE
       const title = document.createElement("h2");
-      title.textContent = event.event_title || "Untitled Event";
+title.textContent = event.event_title || "Untitled Event";
 
-      // ARCHIVE DATE (fallback if missing)
-      const archived = event.archived_at
-        ? new Date(event.archived_at).toLocaleString()
-        : "Unknown archival time";
+const type = document.createElement("p");
+type.style.marginTop = "-0.7rem";
+type.style.fontSize = "1rem";
+type.style.color = "#444";
+type.innerHTML = `<i>${detectEventType(event.event_title)}</i>`;
 
-      const dateInfo = document.createElement("p");
-      dateInfo.className = "archive-date";
-      dateInfo.textContent = "Archived on: " + archived;
+block.appendChild(title);
+block.appendChild(type);
 
       // TABLE GENERATION
       let tableHTML = "<table><thead><tr><th>Date</th>";
@@ -213,7 +226,15 @@
       tableHTML += "</tr></thead><tbody>";
 
       (event.days || []).forEach((day) => {
-        tableHTML += `<tr><td>${day.label || day.date || "-"}</td>`;
+        let displayDate = "-";
+        
+        if (day.date) {
+        displayDate = formatISODate(day.date);
+        } else if (day.label) {
+        displayDate = day.label;
+        }
+
+        tableHTML += `<tr><td>${displayDate}</td>`;
 
         courtNames.forEach((court) => {
           const link = day.links?.[court] || null;
@@ -230,7 +251,6 @@
       tableHTML += "</tbody></table>";
 
       block.appendChild(title);
-      block.appendChild(dateInfo);
       block.insertAdjacentHTML("beforeend", tableHTML);
 
       container.appendChild(block);
