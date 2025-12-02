@@ -322,9 +322,14 @@ block.appendChild(title);
   }
 
   // All filters re-render the list
-  ["sortSelect", "filterSelect", "filterGender", "filterLevel", "filterYear"].forEach((id) =>
+["sortSelect", "filterSelect", "filterGender", "filterLevel", "filterYear"]
+  .forEach(id => {
     document.getElementById(id).addEventListener("change", renderEvents);
-    document.getElementById("searchInput").addEventListener("input", renderEvents);
+  });
+
+// Instant search
+document.getElementById("searchInput").addEventListener("input", renderEvents);
+
 
   );
 </script>
