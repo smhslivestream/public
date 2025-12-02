@@ -322,6 +322,7 @@ block.appendChild(title);
   }
 
   // All filters re-render the list
+// All filters re-render the list
 ["sortSelect", "filterSelect", "filterGender", "filterLevel", "filterYear"]
   .forEach(id => {
     document.getElementById(id).addEventListener("change", renderEvents);
@@ -330,8 +331,6 @@ block.appendChild(title);
 // Instant search
 document.getElementById("searchInput").addEventListener("input", renderEvents);
 
-
-  );
 </script>
 
 
