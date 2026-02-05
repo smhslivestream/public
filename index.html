@@ -421,20 +421,20 @@
 
         // ---------- LATEST (most recent past events, by lastDate desc) ----------
         // Past = lastDate < today AND no nextDate
-        const latestPast = events
-          .map(e => ({ e, ...eventDateStats(e) }))
-          .filter(x => x.lastDateObj && x.lastDateObj < today && !x.nextDateObj)
-          .sort((a,b) => b.lastDateObj - a.lastDateObj)
-          .slice(0, 6) // tweak: show last 6
-          .map(x => x.e);
+const latestArchived = events
+  .filter(e => e.current !== true)
+  .map(e => ({ e, ...eventDateStats(e) }))
+  .filter(x => x.lastDateObj && x.lastDateObj < today)   // ended already
+  .sort((a, b) => b.lastDateObj - a.lastDateObj)[0]?.e || null;
 
-        latestContainer.innerHTML = latestPast.length
-          ? latestPast.map(e => renderMiniEventCard(e, "past")).join("")
-          : `<div class="card"><div class="center muted">No past events found.</div></div>`;
+latestContainer.innerHTML = latestArchived
+  ? renderMiniEventCard(latestArchived, "past")
+  : `<div class="card"><div class="center muted">No archived events found.</div></div>`;
+
 
         // status line
-        statusLine.textContent =
-          `Events: ${events.length} • Current-flagged: ${currentFlagged.length} • Upcoming: ${upcoming.length} • Latest shown: ${latestPast.length}`;
+   statusLine.textContent =
+  `Events: ${events.length} • Current-flagged: ${currentFlagged.length} • Upcoming: ${upcoming.length} • Latest archived: ${latestArchived ? 1 : 0}`;
       })
       .catch(err => {
         console.error("Error loading JSON:", err);
