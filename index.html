@@ -56,7 +56,7 @@
     }
     .badge.current { background: #0aa06e; }
     .badge.upcoming { background: #0077cc; }
-    .badge.past { background: #999; }
+    .badge.latest { background: #7b5cff; } /* just a different tone */
 
     table {
       width: 100%;
@@ -98,15 +98,6 @@
     }
     details summary:hover { text-decoration: underline; }
 
-    .grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 14px;
-    }
-    @media (min-width: 900px) {
-      .grid { grid-template-columns: 1fr 1fr; }
-    }
-
     .divider {
       height: 1px;
       background: #ddd;
@@ -120,44 +111,27 @@
   <h1>École St. Mary High School Livestreaming Page</h1>
   <div class="sub" id="statusLine">Loading events...</div>
 
-  <!-- CURRENT (SINGLE) -->
+  <!-- CLOSEST EVENT TO TODAY (from current-flagged) -->
   <div class="section">
-    <h2>Current Event</h2>
-    <div id="currentContainer" class="card">
-      <h3 id="eventTitle">Loading event...</h3>
-      <div id="tableContainer"></div>
-
-      <p class="center">
-        <button id="copyTableBtnF">📋 Copy Current Event (Formatted)</button>
-        <button id="copyTableBtn">📄 Copy Current Event (Plain Text)</button>
-      </p>
-    </div>
+    <h2>Closest Event</h2>
+    <div id="closestContainer"></div>
   </div>
 
   <div class="divider"></div>
 
-  <!-- CURRENT-FLAGGED + UPCOMING -->
+  <!-- UPCOMING (current-flagged, but later than closest) -->
   <div class="section">
-    <h2>Current-Flagged & Upcoming</h2>
-    <div class="grid">
-      <div>
-        <h3 class="center">All Current-Flagged Events</h3>
-        <div id="currentFlaggedContainer"></div>
-      </div>
-
-      <div>
-        <h3 class="center">Upcoming Events</h3>
-        <div id="upcomingContainer"></div>
-      </div>
-    </div>
+    <h2>Upcoming Events</h2>
+    <div class="sub">Current-flagged events with dates after the closest event.</div>
+    <div id="upcomingContainer"></div>
   </div>
 
   <div class="divider"></div>
 
-  <!-- LATEST (SINGLE ARCHIVED) -->
+  <!-- LATEST (still current-flagged) -->
   <div class="section">
     <h2>Latest Events</h2>
-    <div class="sub">Most recently archived event.</div>
+    <div class="sub">Current-flagged events that already happened (most recent first).</div>
     <div id="latestContainer"></div>
   </div>
 
@@ -165,7 +139,7 @@
 
   <h4 class="center"><a href="past.html">🗄️ View past events</a></h4>
   <h5 class="center"><b>Livestream links provided by <i>École St. Mary High School A/V & Livestreaming Crew.</i></b></h5>
-  <h6 class="center muted">Version 2.0.1</h6>
+  <h6 class="center muted">Version 2.1.0</h6>
 
   <!-- FOLLOW US ON INSTAGRAM -->
   <div style="text-align:center; margin-top:2rem; padding-top:1.5rem; border-top:1px solid #ddd;">
@@ -269,23 +243,23 @@
       return html;
     }
 
-    function renderMiniEventCard(evt, mode) {
-      // mode: "current" | "upcoming" | "past"
+    function renderMiniEventCard(evt, badgeKind) {
+      // badgeKind: "closest" | "upcoming" | "latest"
       const title = evt.event_title || "Event";
       const { firstDateObj, lastDateObj, nextDateObj } = eventDateStats(evt);
 
       let badgeClass = "badge";
       let badgeText = "Event";
 
-      if (mode === "current") {
+      if (badgeKind === "closest") {
         badgeClass += " current";
         if (nextDateObj) {
           const d = daysUntil(nextDateObj);
           badgeText = (d === 0) ? "Today" : `${d} day(s) away`;
         } else {
-          badgeText = "Current";
+          badgeText = "Closest";
         }
-      } else if (mode === "upcoming") {
+      } else if (badgeKind === "upcoming") {
         badgeClass += " upcoming";
         if (nextDateObj) {
           const d = daysUntil(nextDateObj);
@@ -294,8 +268,8 @@
           badgeText = "Upcoming";
         }
       } else {
-        badgeClass += " past";
-        badgeText = "Past";
+        badgeClass += " latest";
+        badgeText = "Latest";
       }
 
       const whenLine = (() => {
@@ -305,7 +279,6 @@
         return `<span class="muted">No dated days found</span>`;
       })();
 
-      // Add copy buttons under the details/table for EACH mini card
       return `
         <div class="card miniEvent" data-event-title="${escapeHtml(title)}">
           <div class="eventHeader">
@@ -329,27 +302,6 @@
       `;
     }
 
-    function pickCurrentEvent(events) {
-      const curr = events.filter(e => e && e.current === true);
-      if (curr.length === 0) return null;
-
-      const withStats = curr.map(e => ({ e, ...eventDateStats(e) }));
-
-      const withNext = withStats.filter(x => x.nextDateObj);
-      if (withNext.length) {
-        withNext.sort((a,b) => a.nextDateObj - b.nextDateObj);
-        return withNext[0].e;
-      }
-
-      const withLast = withStats.filter(x => x.lastDateObj);
-      if (withLast.length) {
-        withLast.sort((a,b) => b.lastDateObj - a.lastDateObj);
-        return withLast[0].e;
-      }
-
-      return curr[0] || null;
-    }
-
     fetch(jsonUrl)
       .then(r => {
         if (!r.ok) throw new Error("Network response was not ok");
@@ -357,138 +309,74 @@
       })
       .then(data => {
         const statusLine = document.getElementById("statusLine");
-        const titleEl = document.getElementById("eventTitle");
-        const tableWrap = document.getElementById("tableContainer");
-
-        const currentFlaggedContainer = document.getElementById("currentFlaggedContainer");
+        const closestContainer = document.getElementById("closestContainer");
         const upcomingContainer = document.getElementById("upcomingContainer");
         const latestContainer = document.getElementById("latestContainer");
 
         if (!data || !Array.isArray(data.events)) {
           statusLine.textContent = "⚠️ Invalid JSON format.";
-          titleEl.textContent = "⚠️ Invalid JSON format.";
+          closestContainer.innerHTML = `<div class="card"><div class="center muted">Invalid JSON format.</div></div>`;
           return;
         }
 
         const events = data.events.filter(e => e && typeof e === "object");
         const today = toLocalMidnight(new Date());
 
-        // ---------- CURRENT (single) ----------
-        const currentEvent = pickCurrentEvent(events);
+        // Only use events flagged current
+        const currentFlagged = events.filter(e => e.current === true);
 
-        if (!currentEvent) {
-          titleEl.textContent = "No current event found.";
-          tableWrap.innerHTML = `<p class="muted">Tip: set <b>"current": true</b> on at least one event.</p>`;
+        // Compute stats once
+        const flaggedWithStats = currentFlagged.map(e => ({ e, ...eventDateStats(e) }));
+
+        // CLOSEST EVENT = the current-flagged event with the soonest nextDate (>= today).
+        // If none have nextDate, fall back to the one with most recent lastDate.
+        const withNext = flaggedWithStats.filter(x => x.nextDateObj).sort((a,b) => a.nextDateObj - b.nextDateObj);
+        const withLast = flaggedWithStats.filter(x => x.lastDateObj).sort((a,b) => b.lastDateObj - a.lastDateObj);
+
+        const closestEvent = withNext.length ? withNext[0].e : (withLast.length ? withLast[0].e : null);
+
+        // UPCOMING = other current-flagged events that have nextDate AFTER the closestEvent's nextDate
+        let upcoming = [];
+        if (withNext.length) {
+          const closestNext = withNext[0].nextDateObj;
+          upcoming = withNext
+            .slice(1) // everything after the closest in the already-sorted list
+            .map(x => x.e);
         } else {
-          titleEl.textContent = currentEvent.event_title || "Current Event";
-          tableWrap.innerHTML = buildDaysTable(Array.isArray(currentEvent.days) ? currentEvent.days : []);
+          // no future dates at all -> no upcoming
+          upcoming = [];
         }
 
-        // ---------- CURRENT-FLAGGED LIST ----------
-        const currentFlagged = events
-          .filter(e => e.current === true)
-          .map(e => ({ e, ...eventDateStats(e) }))
-          .sort((a,b) => {
-            if (a.nextDateObj && b.nextDateObj) return a.nextDateObj - b.nextDateObj;
-            if (a.nextDateObj && !b.nextDateObj) return -1;
-            if (!a.nextDateObj && b.nextDateObj) return 1;
-            if (a.lastDateObj && b.lastDateObj) return b.lastDateObj - a.lastDateObj;
-            if (a.lastDateObj && !b.lastDateObj) return -1;
-            if (!a.lastDateObj && b.lastDateObj) return 1;
-            return 0;
-          })
+        // LATEST = current-flagged events that already happened (lastDate < today) sorted by lastDate desc
+        const latest = flaggedWithStats
+          .filter(x => x.lastDateObj && x.lastDateObj < today && !x.nextDateObj) // ended and no future days
+          .sort((a,b) => b.lastDateObj - a.lastDateObj)
           .map(x => x.e);
 
-        currentFlaggedContainer.innerHTML = currentFlagged.length
-          ? currentFlagged.map(e => renderMiniEventCard(e, "current")).join("")
-          : `<div class="card"><div class="center muted">No current-flagged events.</div></div>`;
-
-        // ---------- UPCOMING ----------
-        const upcoming = events
-          .filter(e => e.current !== true)
-          .map(e => ({ e, ...eventDateStats(e) }))
-          .filter(x => x.nextDateObj)
-          .sort((a,b) => a.nextDateObj - b.nextDateObj)
-          .map(x => x.e);
+        // Render
+        closestContainer.innerHTML = closestEvent
+          ? renderMiniEventCard(closestEvent, "closest")
+          : `<div class="card"><div class="center muted">No current-flagged events found.</div></div>`;
 
         upcomingContainer.innerHTML = upcoming.length
           ? upcoming.map(e => renderMiniEventCard(e, "upcoming")).join("")
-          : `<div class="card"><div class="center muted">No upcoming events found.</div></div>`;
+          : `<div class="card"><div class="center muted">No upcoming current-flagged events found.</div></div>`;
 
-        // ---------- LATEST (single archived) ----------
-        const latestArchived = events
-          .filter(e => e.current !== true)
-          .map(e => ({ e, ...eventDateStats(e) }))
-          .filter(x => x.lastDateObj && x.lastDateObj < today)
-          .sort((a, b) => b.lastDateObj - a.lastDateObj)[0]?.e || null;
-
-        latestContainer.innerHTML = latestArchived
-          ? renderMiniEventCard(latestArchived, "past")
-          : `<div class="card"><div class="center muted">No archived events found.</div></div>`;
+        latestContainer.innerHTML = latest.length
+          ? latest.map(e => renderMiniEventCard(e, "latest")).join("")
+          : `<div class="card"><div class="center muted">No latest current-flagged events found.</div></div>`;
 
         statusLine.textContent =
-          `Events: ${events.length} • Current-flagged: ${currentFlagged.length} • Upcoming: ${upcoming.length} • Latest archived: ${latestArchived ? 1 : 0}`;
+          `Current-flagged events: ${currentFlagged.length} • Upcoming shown: ${upcoming.length} • Latest shown: ${latest.length}`;
       })
       .catch(err => {
         console.error("Error loading JSON:", err);
         document.getElementById("statusLine").textContent = "⚠️ Failed to load event data.";
-        document.getElementById("eventTitle").textContent = "⚠️ Failed to load event data.";
+        document.getElementById("closestContainer").innerHTML =
+          `<div class="card"><div class="center muted">⚠️ Failed to load event data.</div></div>`;
       });
 
-    // --- Copy CURRENT as Plain Text ---
-    document.getElementById("copyTableBtn").addEventListener("click", function () {
-      const titleElement = document.querySelector("#eventTitle");
-      const table = document.querySelector("#tableContainer table");
-
-      if (!titleElement || !table) {
-        alert("No event found!");
-        return;
-      }
-
-      let text = titleElement.innerText + "\n\n";
-      for (let row of table.rows) {
-        const cells = Array.from(row.cells).map(cell => cell.innerText.trim());
-        text += cells.join("\t") + "\n";
-      }
-
-      navigator.clipboard
-        .writeText(text)
-        .then(() => alert("✅ Current event copied as plain text!"))
-        .catch(() => alert("⚠️ Failed to copy automatically."));
-    });
-
-    // --- Copy CURRENT as Formatted (HTML) ---
-    document.getElementById("copyTableBtnF").addEventListener("click", function () {
-      const titleElement = document.querySelector("#eventTitle");
-      const table = document.querySelector("#tableContainer table");
-
-      if (!titleElement || !table) {
-        alert("No event found!");
-        return;
-      }
-
-      const tempDiv = document.createElement("div");
-      tempDiv.innerHTML = `<h2>${escapeHtml(titleElement.innerText)}</h2>` + table.outerHTML;
-      document.body.appendChild(tempDiv);
-
-      const range = document.createRange();
-      range.selectNode(tempDiv);
-      const selection = window.getSelection();
-      selection.removeAllRanges();
-      selection.addRange(range);
-
-      try {
-        document.execCommand("copy");
-        alert("✅ Current event copied with formatting!");
-      } catch (err) {
-        alert("⚠️ Unable to copy automatically. Please select and copy manually.");
-      }
-
-      selection.removeAllRanges();
-      tempDiv.remove();
-    });
-
-    // --- Copy MINI cards (Upcoming / Latest / Current-flagged) ---
+    // --- Copy MINI cards (Closest / Upcoming / Latest) ---
     document.addEventListener("click", function (e) {
       const btnPlain = e.target.closest(".copyMiniPlain");
       const btnFmt = e.target.closest(".copyMiniFormatted");
