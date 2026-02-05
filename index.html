@@ -17,9 +17,7 @@
     h3 { margin: 0.5rem 0 0.25rem; }
     .sub { text-align: center; color: #666; margin-bottom: 1.25rem; }
 
-    .section {
-      margin-top: 1.25rem;
-    }
+    .section { margin-top: 1.25rem; }
 
     .card {
       background: white;
@@ -114,6 +112,8 @@
       background: #ddd;
       margin: 18px 0;
     }
+
+    .miniCopyRow { margin-top: 6px; }
   </style>
 </head>
 <body>
@@ -136,7 +136,7 @@
 
   <div class="divider"></div>
 
-  <!-- CURRENT-FLAGGED (ALL current=true, sorted by date) + UPCOMING -->
+  <!-- CURRENT-FLAGGED + UPCOMING -->
   <div class="section">
     <h2>Current-Flagged & Upcoming</h2>
     <div class="grid">
@@ -154,10 +154,10 @@
 
   <div class="divider"></div>
 
-  <!-- LATEST (RECENT PAST EVENTS) -->
+  <!-- LATEST (SINGLE ARCHIVED) -->
   <div class="section">
     <h2>Latest Events</h2>
-    <div class="sub">Most recent past events (by last event day).</div>
+    <div class="sub">Most recently archived event.</div>
     <div id="latestContainer"></div>
   </div>
 
@@ -165,13 +165,12 @@
 
   <h4 class="center"><a href="past.html">🗄️ View past events</a></h4>
   <h5 class="center"><b>Livestream links provided by <i>École St. Mary High School A/V & Livestreaming Crew.</i></b></h5>
-  <h6 class="center muted">Version 2.0.0</h6>
+  <h6 class="center muted">Version 2.0.1</h6>
 
   <!-- FOLLOW US ON INSTAGRAM -->
   <div style="text-align:center; margin-top:2rem; padding-top:1.5rem; border-top:1px solid #ddd;">
     <a href="https://www.instagram.com/smhs_livestream/" target="_blank"
        style="display:inline-flex; align-items:center; gap:10px; text-decoration:none; color:#333; font-family:Arial, sans-serif;">
-      <!-- Instagram SVG Logo -->
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="28" height="28" fill="#E1306C">
         <path d="M349.33 69.33h-186.7A93.67 93.67 0 0 0 69 163v186a93.67 93.67 0 0 0 93.67 93.67h186.66A93.67 93.67 0 0 0 443 349.33V163A93.67 93.67 0 0 0 349.33 69.33Zm61.34 280a61.35 61.35 0 0 1-61.34 61.34h-186.7a61.35 61.35 0 0 1-61.34-61.34v-186.7a61.35 61.35 0 0 1 61.34-61.34h186.66a61.35 61.35 0 0 1 61.34 61.34Z"/>
         <path d="M256 164.1A91.9 91.9 0 1 0 347.9 256 91.91 91.91 0 0 0 256 164.1Zm0 151.42A59.52 59.52 0 1 1 315.52 256 59.52 59.52 0 0 1 256 315.52Z"/>
@@ -218,10 +217,6 @@
     }
 
     function eventDateStats(evt) {
-      // returns:
-      // - firstDateObj: earliest day date
-      // - lastDateObj: latest day date
-      // - nextDateObj: first day date >= today (or null)
       const today = toLocalMidnight(new Date());
       const days = Array.isArray(evt.days) ? evt.days : [];
       const dates = days
@@ -284,7 +279,6 @@
 
       if (mode === "current") {
         badgeClass += " current";
-        // Show how soon the next date is (or just "Current")
         if (nextDateObj) {
           const d = daysUntil(nextDateObj);
           badgeText = (d === 0) ? "Today" : `${d} day(s) away`;
@@ -311,8 +305,9 @@
         return `<span class="muted">No dated days found</span>`;
       })();
 
+      // Add copy buttons under the details/table for EACH mini card
       return `
-        <div class="card miniEvent">
+        <div class="card miniEvent" data-event-title="${escapeHtml(title)}">
           <div class="eventHeader">
             <div>
               <div class="eventTitle">${escapeHtml(title)}</div>
@@ -320,19 +315,22 @@
             </div>
             <span class="${badgeClass}">${escapeHtml(badgeText)}</span>
           </div>
+
           <details>
             <summary>Show days & links</summary>
             ${buildDaysTable(Array.isArray(evt.days) ? evt.days : [])}
+
+            <p class="center miniCopyRow">
+              <button class="copyMiniFormatted">📋 Copy Event (Formatted)</button>
+              <button class="copyMiniPlain">📄 Copy Event (Plain Text)</button>
+            </p>
           </details>
         </div>
       `;
     }
 
     function pickCurrentEvent(events) {
-      // “Current Event” = among evt.current === true, pick the one with the soonest nextDate (>= today).
-      // If none have a nextDate, fall back to the one with the latest lastDate.
       const curr = events.filter(e => e && e.current === true);
-
       if (curr.length === 0) return null;
 
       const withStats = curr.map(e => ({ e, ...eventDateStats(e) }));
@@ -386,16 +384,14 @@
           tableWrap.innerHTML = buildDaysTable(Array.isArray(currentEvent.days) ? currentEvent.days : []);
         }
 
-        // ---------- CURRENT-FLAGGED LIST (all current:true, sorted by next date then last date) ----------
+        // ---------- CURRENT-FLAGGED LIST ----------
         const currentFlagged = events
           .filter(e => e.current === true)
           .map(e => ({ e, ...eventDateStats(e) }))
           .sort((a,b) => {
-            // sort by nextDate asc if both have it; else ones with nextDate come first;
             if (a.nextDateObj && b.nextDateObj) return a.nextDateObj - b.nextDateObj;
             if (a.nextDateObj && !b.nextDateObj) return -1;
             if (!a.nextDateObj && b.nextDateObj) return 1;
-            // otherwise sort by lastDate desc
             if (a.lastDateObj && b.lastDateObj) return b.lastDateObj - a.lastDateObj;
             if (a.lastDateObj && !b.lastDateObj) return -1;
             if (!a.lastDateObj && b.lastDateObj) return 1;
@@ -407,11 +403,11 @@
           ? currentFlagged.map(e => renderMiniEventCard(e, "current")).join("")
           : `<div class="card"><div class="center muted">No current-flagged events.</div></div>`;
 
-        // ---------- UPCOMING (current:false, has a nextDate) ----------
+        // ---------- UPCOMING ----------
         const upcoming = events
-          .filter(e => e.current !== true) // treat anything not true as not-current
+          .filter(e => e.current !== true)
           .map(e => ({ e, ...eventDateStats(e) }))
-          .filter(x => x.nextDateObj) // must have a future/today date
+          .filter(x => x.nextDateObj)
           .sort((a,b) => a.nextDateObj - b.nextDateObj)
           .map(x => x.e);
 
@@ -419,22 +415,19 @@
           ? upcoming.map(e => renderMiniEventCard(e, "upcoming")).join("")
           : `<div class="card"><div class="center muted">No upcoming events found.</div></div>`;
 
-        // ---------- LATEST (most recent past events, by lastDate desc) ----------
-        // Past = lastDate < today AND no nextDate
-const latestArchived = events
-  .filter(e => e.current !== true)
-  .map(e => ({ e, ...eventDateStats(e) }))
-  .filter(x => x.lastDateObj && x.lastDateObj < today)   // ended already
-  .sort((a, b) => b.lastDateObj - a.lastDateObj)[0]?.e || null;
+        // ---------- LATEST (single archived) ----------
+        const latestArchived = events
+          .filter(e => e.current !== true)
+          .map(e => ({ e, ...eventDateStats(e) }))
+          .filter(x => x.lastDateObj && x.lastDateObj < today)
+          .sort((a, b) => b.lastDateObj - a.lastDateObj)[0]?.e || null;
 
-latestContainer.innerHTML = latestArchived
-  ? renderMiniEventCard(latestArchived, "past")
-  : `<div class="card"><div class="center muted">No archived events found.</div></div>`;
+        latestContainer.innerHTML = latestArchived
+          ? renderMiniEventCard(latestArchived, "past")
+          : `<div class="card"><div class="center muted">No archived events found.</div></div>`;
 
-
-        // status line
-   statusLine.textContent =
-  `Events: ${events.length} • Current-flagged: ${currentFlagged.length} • Upcoming: ${upcoming.length} • Latest archived: ${latestArchived ? 1 : 0}`;
+        statusLine.textContent =
+          `Events: ${events.length} • Current-flagged: ${currentFlagged.length} • Upcoming: ${upcoming.length} • Latest archived: ${latestArchived ? 1 : 0}`;
       })
       .catch(err => {
         console.error("Error loading JSON:", err);
@@ -493,6 +486,59 @@ latestContainer.innerHTML = latestArchived
 
       selection.removeAllRanges();
       tempDiv.remove();
+    });
+
+    // --- Copy MINI cards (Upcoming / Latest / Current-flagged) ---
+    document.addEventListener("click", function (e) {
+      const btnPlain = e.target.closest(".copyMiniPlain");
+      const btnFmt = e.target.closest(".copyMiniFormatted");
+      if (!btnPlain && !btnFmt) return;
+
+      const card = e.target.closest(".miniEvent");
+      if (!card) return;
+
+      const title = card.querySelector(".eventTitle")?.innerText?.trim() || "Event";
+      const table = card.querySelector("table");
+
+      if (!table) {
+        alert("No table found to copy!");
+        return;
+      }
+
+      if (btnPlain) {
+        let text = title + "\n\n";
+        for (let row of table.rows) {
+          const cells = Array.from(row.cells).map(cell => cell.innerText.trim());
+          text += cells.join("\t") + "\n";
+        }
+
+        navigator.clipboard
+          .writeText(text)
+          .then(() => alert("✅ Event copied as plain text!"))
+          .catch(() => alert("⚠️ Failed to copy automatically."));
+      }
+
+      if (btnFmt) {
+        const tempDiv = document.createElement("div");
+        tempDiv.innerHTML = `<h2>${escapeHtml(title)}</h2>` + table.outerHTML;
+        document.body.appendChild(tempDiv);
+
+        const range = document.createRange();
+        range.selectNode(tempDiv);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+
+        try {
+          document.execCommand("copy");
+          alert("✅ Event copied with formatting!");
+        } catch (err) {
+          alert("⚠️ Unable to copy automatically. Please select and copy manually.");
+        }
+
+        selection.removeAllRanges();
+        tempDiv.remove();
+      }
     });
   </script>
 </body>
